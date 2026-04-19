@@ -1,0 +1,140 @@
+import heapq
+from collections import deque, defaultdict
+
+class Graph:
+    def __init__(self, v):
+        self.V = v
+        self.adj_list = [[] for _ in range(v)]
+        self.matrix = [[0]*v for _ in range(v)]
+
+    def add_edge(self, u, v, w=1):
+        self.adj_list[u].append((v, w))
+        self.matrix[u][v] = 1
+
+    def bfs(self, start):
+        visited = [False]*self.V
+        queue = deque([start])
+        visited[start] = True
+        res = []
+        while queue:
+            node = queue.popleft()
+            res.append(node)
+            for neigh, _ in self.adj_list[node]:
+                if not visited[neigh]:
+                    visited[neigh] = True
+                    queue.append(neigh)
+        return res
+
+    def dfs_util(self, node, visited, res):
+        visited[node] = True
+        res.append(node)
+        for neigh, _ in self.adj_list[node]:
+            if not visited[neigh]:
+                self.dfs_util(neigh, visited, res)
+
+    def dfs(self, start):
+        visited = [False]*self.V
+        res = []
+        self.dfs_util(start, visited, res)
+        return res
+
+    def dijkstra(self, start):
+        dist = {i: float('inf') for i in range(self.V)}
+        dist[start] = 0
+        pq = [(0, start)]
+        while pq:
+            d, node = heapq.heappop(pq)
+            for neigh, w in self.adj_list[node]:
+                if dist[neigh] > d + w:
+                    dist[neigh] = d + w
+                    heapq.heappush(pq, (dist[neigh], neigh))
+        return dist
+
+    def prim(self):
+        visited = set()
+        pq = [(0, 0)]
+        total = 0
+        while pq:
+            w, node = heapq.heappop(pq)
+            if node not in visited:
+                visited.add(node)
+                total += w
+                for neigh, weight in self.adj_list[node]:
+                    if neigh not in visited:
+                        heapq.heappush(pq, (weight, neigh))
+        return total
+
+def topological_sort(v, edges):
+    graph = defaultdict(list)
+    indegree = [0]*v
+    for u, w in edges:
+        graph[u].append(w)
+        indegree[w] += 1
+    queue = deque([i for i in range(v) if indegree[i] == 0])
+    res = []
+    while queue:
+        node = queue.popleft()
+        res.append(node)
+        for neigh in graph[node]:
+            indegree[neigh] -= 1
+            if indegree[neigh] == 0:
+                queue.append(neigh)
+    return res
+
+def bellman_ford(v, edges, src):
+    dist = [float('inf')]*v
+    dist[src] = 0
+    for _ in range(v-1):
+        for u, w, wt in edges:
+            if dist[u] + wt < dist[w]:
+                dist[w] = dist[u] + wt
+    return dist
+
+def find(parent, i):
+    if parent[i] != i:
+        parent[i] = find(parent, parent[i])
+    return parent[i]
+
+def union(parent, rank, x, y):
+    rootx = find(parent, x)
+    rooty = find(parent, y)
+    if rank[rootx] < rank[rooty]:
+        parent[rootx] = rooty
+    elif rank[rootx] > rank[rooty]:
+        parent[rooty] = rootx
+    else:
+        parent[rooty] = rootx
+        rank[rootx] += 1
+
+def kruskal(v, edges):
+    edges.sort(key=lambda x: x[2])
+    parent = list(range(v))
+    rank = [0]*v
+    total = 0
+    for u, w, wt in edges:
+        if find(parent, u) != find(parent, w):
+            union(parent, rank, u, w)
+            total += wt
+    return total
+
+if __name__ == "__main__":
+    g = Graph(5)
+    g.add_edge(0,1,2)
+    g.add_edge(0,2,4)
+    g.add_edge(1,2,1)
+    g.add_edge(1,3,7)
+    g.add_edge(2,4,3)
+
+    print("BFS:", g.bfs(0))
+    print("DFS:", g.dfs(0))
+    print("Dijkstra:", g.dijkstra(0))
+    print("Prim MST:", g.prim())
+
+    edges_topo = [(0,1),(0,2),(1,3),(2,3)]
+    print("Topo Sort:", topological_sort(4, edges_topo))
+
+    edges_bf = [(0,1,2),(0,2,4),(1,2,1),(1,3,7),(2,4,3)]
+    print("Bellman Ford:", bellman_ford(5, edges_bf, 0))
+
+    edges_kruskal = [(0,1,2),(0,2,4),(1,2,1),(1,3,7),(2,4,3)]
+    print("Kruskal MST:", kruskal(5, edges_kruskal))
